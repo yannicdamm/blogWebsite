@@ -1,8 +1,8 @@
 ---
-title: My first post
+title: Creating wedge and windrose buffer in R
 author: 'Yannic Rudá Damm'
 date: '2022-03-18'
-slug: my-first-post
+slug: windrose-buffer
 categories: []
 tags: []
 subtitle: ''
@@ -16,6 +16,10 @@ image:
   preview_only: no
 projects: []
 ---
+
+# Creating Wedge and Windrose Buffers in R
+
+For one of my research projects I wanted 
 
 ```{r echo=FALSE}
 library(ggplot2)
