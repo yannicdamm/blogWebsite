@@ -25,7 +25,7 @@ First of all, let's have a look at how a wedge buffer looks like in QGIS: image:
 
 As you can see, it basically looks like a slice of pizza. Or more precisely, it looks like an isosceles triangle with two equally length lines emerging from a point at the tip of the acute angle and a rounded line connecting them.
 
-But how do you create such a polygon in R? After a deep dive into StackExchange I found a [post](https://gis.stackexchange.com/questions/31294/how-to-visualize-azimuthal-data-with-uncertainties) from 2012 about a similar question. With some small adjustments to the code I was able to write a function that created the coordinates points in the wedged shape. Necessary values you have to provide to the function are azimuth (in degrees, clockwise), which specifies the direction of the wedge and delta (in degrees, 0\<=&\<90), which gives you the curvature. Further options allow you to specify the origin of the polygon, the radius length and the space between the points that outline the polygon. Let's look at some examples:
+But how do you create such a polygon in R? After a deep dive into *StackExchange* I found a [post](https://gis.stackexchange.com/questions/31294/how-to-visualize-azimuthal-data-with-uncertainties) from 2012 about a similar question. With some small adjustments to the code I was able to write a function that created the coordinates points in the wedged shape. Necessary values you have to provide to the function are azimuth (in degrees, clockwise), which specifies the direction of the wedge and delta (in degrees, 0\<=&\<90), which gives you the curvature. Further options allow you to specify the origin of the polygon, the radius length and the space between the points that outline the polygon. Let's look at some examples:
 
 ```{r wedgePlotExamples, echo=TRUE, message=FALSE, warning=FALSE}
 
@@ -83,10 +83,10 @@ wedge <- function(azimuth, delta, origin=c(0,0), radius=1, eps=1) {
 
 # 2 by 2 plot of different wedge buffers
 par(mfrow=c(2, 2))
-print(plot(wedge(azimuth = 1, delta = 89), main = "azimuth = 1, delta = 89"))
-print(plot(wedge(azimuth = 45, delta = 10), main = "azimuth = 45, delta = 10"))
-print(plot(wedge(azimuth = 180, delta = 45), main = "azimuth = 180, delta = 45"))
-print(plot(wedge(azimuth = 90, delta = 25), main = "azimuth = 90, delta = 25"))
+plot(wedge(azimuth = 1, delta = 89), main = "azimuth = 1, delta = 89")
+plot(wedge(azimuth = 45, delta = 10), main = "azimuth = 45, delta = 10")
+plot(wedge(azimuth = 180, delta = 45), main = "azimuth = 180, delta = 45")
+plot(wedge(azimuth = 90, delta = 25), main = "azimuth = 90, delta = 25")
 ```
 
 Now that we can create the coordinates for a wedge buffer, we just need to convert into a spatial object like a polygon. This spatial polygon can then be used for spatial analysis.
@@ -101,7 +101,7 @@ plot(sps)
 
 ```
 
-Now let's apply this to an example dataset of four sites in London 2009 from the openair package. First, we use the openair package to calculate annual averages of all variables for each site. Openair also automatically accounts for the wind speed to calculate the wind speed adjusted annual average wind direction. After that, we just forward the values for wind direction as azimuth and the coordinates of the site as origin to the wedge buffer function. We can also play around with values for the curvature (delta) and length (radius) of the wedge buffers.
+Now let's apply this to an example dataset of four sites in London 2009 from the *openair* package. First, we use the *openair* package to calculate annual averages of all variables for each site. *Openair* also automatically accounts for the wind speed to calculate the wind speed adjusted annual average wind direction. After that, we just forward the values for wind direction as azimuth and the coordinates of the site as origin to the wedge buffer function. We can also play around with values for the curvature (delta) and length (radius) of the wedge buffers.
 
 ```{r dataExample, echo=TRUE, message=FALSE, warning=FALSE}
 
@@ -121,7 +121,7 @@ tA <- timeAverage(d, avg.time = "year", type = "site")
 tA <- st_as_sf(tA, coords = c("lon", "lat"), crs = 4326) 
 
 # Loop over each site to calculate individual downwind wedge buffers
-bw <- lapply(1:nrow(tA), function(i){
+wedge_buffers <- lapply(1:nrow(tA), function(i){
   # Calculate wedge buffer coordinates
   xy <- data.frame(wedge(tA[["wd"]][[i]], delta = 20, origin = tA[["geometry"]][[i]], radius=5000))
   # Convert to spatial polygon
@@ -133,17 +133,16 @@ bw <- lapply(1:nrow(tA), function(i){
 })
 
 # Transform list into spatial dataframe
-dd <- bind_rows(bw)
-dd$site <- tA$site
-dd <- dd %>% st_set_crs(4326)
-st_crs(dd)
+wbsd <- bind_rows(wedge_buffers)
+wbsd$site <- tA$site
+wbsd <- wbsd %>% st_set_crs(4326)
 
 # Plot sites and downwind wedge buffer
 my_map <-
   leaflet() %>%
   addTiles(group = "OpenStreetMap") %>%
   addCircles(data = tA, opacity = 0.9, color = "red", label = ~htmlEscape(site))%>%
-  addPolygons(data = dd, opacity = 0.8, label = ~htmlEscape(site))
+  addPolygons(data = wbsd, opacity = 0.8, color = "black", weight = 2, label = ~htmlEscape(site))
 my_map
   
 ```
@@ -153,7 +152,7 @@ Finally, we want to count or retrieve the ID of locations located downwind of th
 ```{r countPoints, echo=FALSE, message=FALSE, warning=FALSE}
 
 # Draw 100 random points around the sites
-bb_sites <- bb(dd, ext = 1.15)
+bb_sites <- bb(wbsd, ext = 1.15)
 set.seed(3)
 points <- data.frame(cbind(lon = runif(100, bb_sites[[1]]-0.1, bb_sites[[3]])+0.1, lat = runif(100, bb_sites[[2]]-0.1, bb_sites[[4]]+0.1)))
 points$id <-seq.int(nrow(points))
@@ -161,7 +160,7 @@ points$count <- 1
 points <- st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
 
 # Spatial join between points and wedge buffers
-points_in_wedge <- st_join(points,dd, join = st_within)
+points_in_wedge <- st_join(points, wbsd, join = st_within)
 points_in_wedge$geometry <- NULL
 points_in_wedge <- na.omit(points_in_wedge)
 # Show table with downwind points
@@ -177,23 +176,23 @@ my_map <-
   leaflet() %>%
   addTiles(group = "CartoDB") %>%
   addCircles(data = tA, opacity = 0.9, color = "red", label = ~htmlEscape(site))%>%
-  addPolygons(data = dd, opacity = 0.8, label = ~htmlEscape(site))%>%
-  addCircles(data = points, opacity = 0.9, color = "black", radius=5, label = ~htmlEscape(id))
+  addPolygons(data = wbsd, opacity = 0.8, color = "black", weight = 2, label = ~htmlEscape(site))%>%
+  addCircles(data = points, opacity = 0.9, color = "steelblue", radius=5, label = ~htmlEscape(id))
 my_map
 
 ```
 
-# The buffeRs package
+# The *buffeRs* package
 
-Obviously, after I found a solution to my problem someone created an R package that does exactly that in a more sophisticated manner. The package is called "buffeRs" and can create various types of polygons around a point. For example, it can also create windrose buffers.
+Obviously, after I found a solution to my problem someone created an R package that does exactly that in a more sophisticated manner. The package is called *buffeRs* and can create various types of polygons around a point. For example, it can also create windrose buffers.
 
-```{r buffeRsexample, echo=FALSE, message=FALSE, warning=FALSE}
+```{r buffeRsexample, echo=TRUE, message=FALSE, warning=FALSE}
 
 library(buffeRs)
 
-# 
+# calculate windrose statistics
 wind_rose <- windRose(d, statistic = "prop.mean", type = "site")
-# 
+# Create windrose shaped polygons
 windrose_shaped_buffer <- 
   lapply(1:nrow(tA), function(i){
     st_sf(buffer_windrose(
@@ -205,16 +204,16 @@ windrose_shaped_buffer <-
   })
  
 # Transform list into spatial dataframe
-dd <- bind_rows(windrose_shaped_buffer)
-dd$site <- tA$site
-dd <- dd %>% st_set_crs(4326)
+wbsd <- bind_rows(windrose_shaped_buffer)
+wbsd$site <- tA$site
+wbsd <- wbsd %>% st_set_crs(4326)
 
 # Plot map with windrose buffers
 my_map <-
   leaflet() %>%
   addTiles(group = "CartoDB") %>%
   addCircles(data = tA, opacity = 0.9, color = "red", label = ~htmlEscape(site))%>%
-  addPolygons(data = dd, opacity = 0.8, label = ~htmlEscape(site))
+  addPolygons(data = wbsd, opacity = 0.8, label = ~htmlEscape(site))
 my_map
 
 ```
