@@ -1,5 +1,5 @@
 ---
-title: "Yannic Rudá Damm"
+title: "Yannic Damm"
 education:
   courses:
   - course: MSc in Economics
@@ -14,7 +14,8 @@ education:
 email: "yannic.damm@ilr.uni-bonn.de"
 highlight_name: no
 interests:
-- Development Economics
+- Environmental Economics
+- Land Use and Land Use Change
 - Impact Evaluation
 organizations:
 - name: University of Bonn
@@ -44,15 +45,15 @@ social:
   link: https://github.com/yannicdamm
 - icon: linkedin
   icon_pack: fab
-  link: https://www.linkedin.com/in/yannic-damm-3b2713151
+  link: https://www.linkedin.com/in/yannic-damm/
 #- icon: instagram
 #  icon_pack: fab
 #  link: https://www.instagram.com/shilaan01/ 
 superuser: yes
-bio: My research interests include statistics
+# bio: My research interests include statistics
 greeting: damm::yannicruda()
 ---
 
 I am an economist and doctoral student in agricultural economics at the Chair of Economics of Sustainable Land Use and Bioeconomy at the Institute for Food and Resource Economics, University of Bonn. My research focuses on land-use change, environmental policies and impact evaluation in the Brazilian Amazon. 
 
-# {{< icon name="download" pack="fas" >}} Download my {{< staticref "uploads/resume.pdf" "newtab" >}}resumé{{< /staticref >}}.
+{{< icon name="download" pack="fas" >}} Download my {{< staticref "uploads/resume.pdf" "newtab" >}}resumé{{< /staticref >}}.

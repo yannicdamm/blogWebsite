@@ -1,6 +1,6 @@
 ---
 title: Creating wedge and windrose buffers in R
-author: 'Yannic Rudá Damm'
+author: 'Yannic Damm'
 date: '2022-03-18'
 slug: windrose-buffer
 categories: []
@@ -8,7 +8,7 @@ tags: []
 subtitle: ''
 summary: ''
 authors: []
-lastmod: '2022-03-18T18:18:59+01:00'
+lastmod: '2023-09-11T14:02:59+01:00'
 featured: no
 image:
   caption: ''
@@ -17,28 +17,204 @@ image:
 projects: []
 ---
 
-# Creating Wedge and Windrose Buffers in R
+## Creating Wedge and Windrose Buffers in R
 
-For one of my research projects I was using geographically explicit data. Each entry in my database basically contained longitude and latitude variables referencing to point locations on the earth's surface. One idea I had during the research project was to count the amount of points "downwind" from another point location. After a quick search on the internet I found QGIS' wedge buffer function, which looked like what I wanted to do. However, QGIS is a different type of software explicitly created to handle geographic information system (GIS) data (hence its name) and outside of my typical R workflow. This meant I would have to export my data from R to QGIS, do the geographic analysis there and then export that data back again to R. This was a problem for me because I like to automate as many steps possible of my analysis and workflow, ideally from the import of the original raw data source to the final paper creation. This allows me to easily rerun all the steps of my analysis without having to manually keep track of any exceptions. Although R  is able to handle GIS data as well and many packages for that purpose exist, I was not able to find a similar kind of wedge buffer function in R. So I decided to create my own.
+For one of my research projects I was using geographically explicit data. Each entry in my database basically contained longitude and latitude variables referencing to point locations on the earth's surface. One idea I had during the research project was to count the amount of points "downwind" from another point location. After a quick search on the internet I found QGIS' wedge buffer function, which looked like what I wanted to do. However, QGIS is a different type of software explicitly created to handle geographic information system (GIS) data (hence its name) and outside of my typical R workflow. This meant I would have to export my data from R to QGIS, do the geographic analysis there and then export that data back again to R. This was a problem for me because I like to automate as many steps possible of my analysis and workflow, ideally from the import of the original raw data source to the final paper creation. This allows me to easily rerun all the steps of my analysis without having to manually keep track of any exceptions. Although R is able to handle GIS data as well and many packages for that purpose exist, I was not able to find a similar kind of wedge buffer function in R. So I decided to create my own.
 
-First of all, let's have a look at how a wedge buffer looks like in QGIS: 
-image: ![](qgisWedgeBuffer.png)
+First of all, let's have a look at how a wedge buffer looks like in QGIS: image: ![QGIS wedge buffer](figures/qgisWedgeBuffer.png)
 
-As you can see, it basically looks like a slice of pizza. Or more precisely, it looks like a isosceles triangle with two equally length lines emerging from a point at the tip of the acute angle and a rounded line connecting them. 
+As you can see, it basically looks like a slice of pizza. Or more precisely, it looks like an isosceles triangle with two equally length lines emerging from a point at the tip of the acute angle and a rounded line connecting them.
 
+But how do you create such a polygon in R? After a deep dive into StackExchange I found a [post](https://gis.stackexchange.com/questions/31294/how-to-visualize-azimuthal-data-with-uncertainties) from 2012 about a similar question. With some small adjustments to the code I was able to write a function that created the coordinates points in the wedged shape. Necessary values you have to provide to the function are azimuth (in degrees, clockwise), which specifies the direction of the wedge and delta (in degrees, 0\<=&\<90), which gives you the curvature. Further options allow you to specify the origin of the polygon, the radius length and the space between the points that outline the polygon. Let's look at some examples:
 
-```{r echo=FALSE}
-library(ggplot2)
+```{r wedgePlotExamples echo=TRUE, message=FALSE, warning=FALSE}
 
-x = seq(-1, 1, .01)
-y = sin(x^3)/(1 + x^6)
+wedge <- function(azimuth, delta, origin=c(0,0), radius=1, eps=1) {
+  #
+  # On entry:
+  #   azimuth and delta are in degrees.
+  #   azimuth is east of north; delta should be positive.
+  #   origin is (lon, lat) in degrees.
+  #   radius is in meters.
+  #   eps is in degrees: it is the angular spacing between vertices.
+  #
+  # On exit:
+  #   returns an n by 2 array of (lon, lat) coordinates describing a "wedge" shape.
+  #
+  # NB: we work in radians throughout, making conversions from and to degrees at the
+  #   entry and exit.
+  #--------------------------------------------------------------------------------#
+  if (eps <= 0) stop("eps must be positive")
+  if (delta <= 0) stop ("delta must be positive")
+  if (delta > 90) stop ("delta must be between 0 and 90")
+  if (delta >= eps * 10^4) stop("eps is too small compared to delta")
+  if (origin[2] > 90 || origin[2] < -90) stop("origin must be in lon-lat")
+  a <- azimuth * pi / 180; da <- delta * pi / 180; de <- eps * pi / 180 
+  start <- origin * pi / 180
+  #
+  # Precompute values for `goto`.
+  #
+  lon <- start[1]; lat <- start[2]
+  lat.c <- cos(lat); lat.s <- sin(lat)
+  radius.radians <- radius / 6366710
+  radius.c <- cos(radius.radians); radius.s <- sin(radius.radians) * lat.c
+  #
+  # Find the point at a distance of `radius` from the origin at a bearing of theta.
+  # http://williams.best.vwh.net/avform.htm#Math
+  #
+  goto <- function(theta) {
+    lat1 <- asin(lat1.s <- lat.s * radius.c + radius.s * cos(theta))
+    dlon <- atan2(-sin(theta) * radius.s, radius.c - lat.s * lat1.s)
+    lon1 <- lon - dlon + pi %% (2 * pi) - pi
+    c(lon1, lat1)
+  }
+  #
+  # Compute the perimeter vertices.
+  #
+  n.vertices <- ceiling(2 * da / de)
+  bearings <- seq(from = a - da, to = a + da, length.out = n.vertices)
+  xy <- data.frame(t(cbind(start, sapply(bearings, goto), start)))
+  colnames(xy) <- c("x", "y")
+  xy$x <- xy$x * 180 / pi
+  xy$y <- xy$y * 180 / pi
+  
+  return(xy)
+}
 
-ggplot(mapping = aes(x = x, 
-                     y = y)) +
-geom_line() +
-geom_ribbon(aes(ymin = 0, 
-                ymax = y), 
-            fill = "pink", 
-            alpha = 0.5) +
-theme_void() 
+# 2 by 2 plot of different wedge buffers
+par(mfrow=c(2, 2))
+print(plot(wedge(azimuth = 1, delta = 89), main = "azimuth = 1, delta = 89"))
+print(plot(wedge(azimuth = 45, delta = 10), main = "azimuth = 45, delta = 10"))
+print(plot(wedge(azimuth = 180, delta = 45), main = "azimuth = 180, delta = 45"))
+print(plot(wedge(azimuth = 90, delta = 25), main = "azimuth = 90, delta = 25"))
+```
+
+Now that we can create the coordinates for a wedge buffer, we just need to convert into a spatial object like a polygon. This spatial polygon can then be used for spatial analysis.
+
+```{r wedgePolygon echo=FALSE, message=FALSE, warning=FALSE}
+
+library(sp)
+p = Polygon(wedge(azimuth = 45, delta = 25))
+ps = Polygons(list(p),1)
+sps = SpatialPolygons(list(ps))
+plot(sps)
+
+```
+
+Now let's apply this to an example dataset of four sites in London 2009 from the openair package. First, we use the openair package to calculate annual averages of all variables for each site. Openair also automatically accounts for the wind speed to calculate the wind speed adjusted annual average wind direction. After that, we just forward the values for wind direction as azimuth and the coordinates of the site as origin to the wedge buffer function. We can also play around with values for the curvature (delta) and length (radius) of the wedge buffers.
+
+```{r dataExample echo=TRUE, message=FALSE, warning=FALSE}
+
+library(openair)
+library(openairmaps)
+library(sf)
+library(tidyverse)
+library(leaflet)
+library(htmltools)
+library(tmaptools)
+
+# Load the data
+d <- polar_data
+# Calculate annual averages
+tA <- timeAverage(d, avg.time = "year", type = "site")
+# Convert data to spatial data
+tA <- st_as_sf(tA, coords = c("lon", "lat"), crs = 4326) 
+
+# Loop over each site to calculate individual downwind wedge buffers
+bw <- lapply(1:nrow(tA), function(i){
+  # Calculate wedge buffer coordinates
+  xy <- data.frame(wedge(tA[["wd"]][[i]], delta = 20, origin = tA[["geometry"]][[i]], radius=5000))
+  # Convert to spatial polygon
+  p <- Polygon(xy)
+  ps <- Polygons(list(p),1)
+  sps <- SpatialPolygons(list(ps))
+  # Convert to spatial data
+  sdps <- st_as_sf(sps, crs = 4326)
+})
+
+# Transform list into spatial dataframe
+dd <- bind_rows(bw)
+dd$site <- tA$site
+dd <- dd %>% st_set_crs(4326)
+st_crs(dd)
+
+# Plot sites and downwind wedge buffer
+my_map <-
+  leaflet() %>%
+  addTiles(group = "OpenStreetMap") %>%
+  addCircles(data = tA, opacity = 0.9, color = "red", label = ~htmlEscape(site))%>%
+  addPolygons(data = dd, opacity = 0.8, label = ~htmlEscape(site))
+my_map
+  
+```
+
+Finally, we want to count or retrieve the ID of locations located downwind of the origin site. Let's first create some randomly located points across the map. Let's also add a unique ID to each point so we could identify specifically which points are located downwind of which site. After that, we just do a spatial join of the two spatial object dataset (equivalent to merging data). After dropping all NAs that did not merge, we are left with the IDs of the points and the name of the site they are located downwind of. As you can see, the point with the ID 32 is actually located downwind of two sites, Cromwell Road 2 and Marylebone Road. We can also count the number of points in each wedge buffer and add that information to the original site annual average data.
+
+```{r countPoints echo=FALSE, message=FALSE, warning=FALSE}
+
+# Draw 100 random points around the sites
+bb_sites <- bb(dd, ext = 1.15)
+set.seed(3)
+points <- data.frame(cbind(lon = runif(100, bb_sites[[1]]-0.1, bb_sites[[3]])+0.1, lat = runif(100, bb_sites[[2]]-0.1, bb_sites[[4]]+0.1)))
+points$id <-seq.int(nrow(points))
+points$count <- 1
+points <- st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
+
+# Spatial join between points and wedge buffers
+points_in_wedge <- st_join(points,dd, join = st_within)
+points_in_wedge$geometry <- NULL
+points_in_wedge <- na.omit(points_in_wedge)
+# Show table with downwind points
+print(points_in_wedge)
+# Count points downwind of each site
+total <- aggregate(points_in_wedge[c("id", "count")], by = list(points_in_wedge[["site"]]), FUN = sum)
+colnames(total) <- c("site", "id", "point_count")
+# Merge to original annual average site data
+tA <- base::merge(tA, total,  by = "site", all.x = TRUE)
+  
+# Plot map with sites, wedge buffers and downwind points
+my_map <-
+  leaflet() %>%
+  addTiles(group = "CartoDB") %>%
+  addCircles(data = tA, opacity = 0.9, color = "red", label = ~htmlEscape(site))%>%
+  addPolygons(data = dd, opacity = 0.8, label = ~htmlEscape(site))%>%
+  addCircles(data = points, opacity = 0.9, color = "black", radius=5, label = ~htmlEscape(id))
+my_map
+
+```
+
+# The buffeRs package
+
+Obviously, after I found a solution to my problem someone created an R package that does exactly that in a more sophisticated manner. The package is called "buffeRs" and can create various types of polygons around a point. For example, it can also create windrose buffers.
+
+```{r buffeRsexample echo=FALSE, message=FALSE, warning=FALSE}
+
+library(buffeRs)
+
+# 
+wind_rose <- windRose(d, statistic = "prop.mean", type = "site")
+# 
+windrose_shaped_buffer <- 
+  lapply(1:nrow(tA), function(i){
+    st_sf(buffer_windrose(
+      point = st_sf(st_sfc(tA[["geometry"]][[i]])) 
+      , wind_frequency_df = wind_rose[["data"]][wind_rose[["data"]][["site"]] == tA[["site"]][[i]], ]
+      , radius = .025
+      , width_factor = 0.5
+    ))
+  })
+ 
+# Transform list into spatial dataframe
+dd <- bind_rows(windrose_shaped_buffer)
+dd$site <- tA$site
+dd <- dd %>% st_set_crs(4326)
+
+# Plot map with windrose buffers
+my_map <-
+  leaflet() %>%
+  addTiles(group = "CartoDB") %>%
+  addCircles(data = tA, opacity = 0.9, color = "red", label = ~htmlEscape(site))%>%
+  addPolygons(data = dd, opacity = 0.8, label = ~htmlEscape(site))
+my_map
+
 ```
