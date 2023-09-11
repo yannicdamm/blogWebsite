@@ -44,6 +44,10 @@ projects: []
 <script src="{{< blogdown/postref >}}index_files/Proj4Leaflet/proj4leaflet.js"></script>
 <link href="{{< blogdown/postref >}}index_files/rstudio_leaflet/rstudio_leaflet.css" rel="stylesheet" />
 <script src="{{< blogdown/postref >}}index_files/leaflet-binding/leaflet.js"></script>
+<style>
+body {
+text-align: justify}
+</style>
 
 ## Creating Wedge and Windrose Buffers in R
 
