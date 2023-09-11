@@ -27,7 +27,7 @@ As you can see, it basically looks like a slice of pizza. Or more precisely, it 
 
 But how do you create such a polygon in R? After a deep dive into StackExchange I found a [post](https://gis.stackexchange.com/questions/31294/how-to-visualize-azimuthal-data-with-uncertainties) from 2012 about a similar question. With some small adjustments to the code I was able to write a function that created the coordinates points in the wedged shape. Necessary values you have to provide to the function are azimuth (in degrees, clockwise), which specifies the direction of the wedge and delta (in degrees, 0\<=&\<90), which gives you the curvature. Further options allow you to specify the origin of the polygon, the radius length and the space between the points that outline the polygon. Let's look at some examples:
 
-```{r wedgePlotExamples echo=TRUE, message=FALSE, warning=FALSE}
+```{r wedgePlotExamples, echo=TRUE, message=FALSE, warning=FALSE}
 
 wedge <- function(azimuth, delta, origin=c(0,0), radius=1, eps=1) {
   #
@@ -91,7 +91,7 @@ print(plot(wedge(azimuth = 90, delta = 25), main = "azimuth = 90, delta = 25"))
 
 Now that we can create the coordinates for a wedge buffer, we just need to convert into a spatial object like a polygon. This spatial polygon can then be used for spatial analysis.
 
-```{r wedgePolygon echo=FALSE, message=FALSE, warning=FALSE}
+```{r wedgePolygon, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(sp)
 p = Polygon(wedge(azimuth = 45, delta = 25))
@@ -103,7 +103,7 @@ plot(sps)
 
 Now let's apply this to an example dataset of four sites in London 2009 from the openair package. First, we use the openair package to calculate annual averages of all variables for each site. Openair also automatically accounts for the wind speed to calculate the wind speed adjusted annual average wind direction. After that, we just forward the values for wind direction as azimuth and the coordinates of the site as origin to the wedge buffer function. We can also play around with values for the curvature (delta) and length (radius) of the wedge buffers.
 
-```{r dataExample echo=TRUE, message=FALSE, warning=FALSE}
+```{r dataExample, echo=TRUE, message=FALSE, warning=FALSE}
 
 library(openair)
 library(openairmaps)
@@ -150,7 +150,7 @@ my_map
 
 Finally, we want to count or retrieve the ID of locations located downwind of the origin site. Let's first create some randomly located points across the map. Let's also add a unique ID to each point so we could identify specifically which points are located downwind of which site. After that, we just do a spatial join of the two spatial object dataset (equivalent to merging data). After dropping all NAs that did not merge, we are left with the IDs of the points and the name of the site they are located downwind of. As you can see, the point with the ID 32 is actually located downwind of two sites, Cromwell Road 2 and Marylebone Road. We can also count the number of points in each wedge buffer and add that information to the original site annual average data.
 
-```{r countPoints echo=FALSE, message=FALSE, warning=FALSE}
+```{r countPoints, echo=FALSE, message=FALSE, warning=FALSE}
 
 # Draw 100 random points around the sites
 bb_sites <- bb(dd, ext = 1.15)
@@ -187,7 +187,7 @@ my_map
 
 Obviously, after I found a solution to my problem someone created an R package that does exactly that in a more sophisticated manner. The package is called "buffeRs" and can create various types of polygons around a point. For example, it can also create windrose buffers.
 
-```{r buffeRsexample echo=FALSE, message=FALSE, warning=FALSE}
+```{r buffeRsexample, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(buffeRs)
 

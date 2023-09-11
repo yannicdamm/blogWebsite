@@ -32,14 +32,14 @@ social:
 #  label: Find me on Twitter
 #  link: https://twitter.com/shilaan01
 - icon: google-scholar
- icon_pack: ai
- link: https://scholar.google.de/citations?hl=de&user=fpofvUUAAAAJ
+  icon_pack: ai
+  link: https://scholar.google.de/citations?hl=de&user=fpofvUUAAAAJ
 #- icon: osf
 #  icon_pack: ai
 #  link: https://osf.io/ug7xd/ 
 - icon: orcid
- icon_pack: ai
- link: http://orcid.org/0000-0002-3464-5347
+  icon_pack: ai
+  link: http://orcid.org/0000-0002-3464-5347
 - icon: github
   icon_pack: fab
   link: https://github.com/yannicdamm
