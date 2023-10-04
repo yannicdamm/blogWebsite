@@ -53,10 +53,7 @@ superuser: yes
 # bio: My research interests include statistics
 greeting: damm::yannicruda()
 ---
-<style>
-body {
-text-align: justify}
-</style>
+
 I am an economist and doctoral student in agricultural economics at the Chair of Economics of Sustainable Land Use and Bioeconomy at the Institute for Food and Resource Economics, University of Bonn. My research focuses on land-use change, environmental policies and impact evaluation in the Brazilian Amazon. 
 </div>
 
