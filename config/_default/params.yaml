@@ -26,7 +26,7 @@ address:
   street: Nußallee 21
   city: Bonn
   region: NRW
-  postcode: '94305'
+  postcode: '53115'
   country: Germany
   country_code: DE
 # coordinates:
@@ -106,7 +106,7 @@ copyright_license:
   allow_derivatives: false
   share_alike: true
   allow_commercial: false
-  notice: 'This work is licensed under {license}'
+  notice: 'This work is licensed under CC-BY 4.0'
 abstract_length: 135
 plugins_js: []
 avatar:

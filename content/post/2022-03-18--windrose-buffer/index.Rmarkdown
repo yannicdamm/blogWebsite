@@ -1,5 +1,5 @@
 ---
-title: Creating wedge and windrose buffers in R
+title: Creating Wedge and Windrose Buffers in R
 author: 'Yannic Damm'
 date: '2022-03-18'
 slug: windrose-buffer
@@ -21,8 +21,6 @@ projects: []
 body {
 text-align: justify}
 </style>
-
-## Creating Wedge and Windrose Buffers in R
 
 For one of my research projects I was using geographically explicit data. Each entry in my database basically contained longitude and latitude variables referencing to point locations on the earth's surface. One idea I had during the research project was to count the amount of points "downwind" from another point location. After a quick search on the internet I found QGIS' wedge buffer function, which looked like what I wanted to do. However, QGIS is a different type of software explicitly created to handle geographic information system (GIS) data (hence its name) and outside of my typical R workflow. This meant I would have to export my data from R to QGIS, do the geographic analysis there and then export that data back again to R. This was a problem for me because I like to automate as many steps possible of my analysis and workflow, ideally from the import of the original raw data source to the final paper creation. This allows me to easily rerun all the steps of my analysis without having to manually keep track of any exceptions. Although R is able to handle GIS data as well and many packages for that purpose exist, I was not able to find a similar kind of wedge buffer function in R. So I decided to create my own.
 
@@ -80,14 +78,14 @@ wedge <- function(azimuth, delta, origin=c(0,0), radius=1, eps=1) {
   bearings <- seq(from = a - da, to = a + da, length.out = n.vertices)
   xy <- data.frame(t(cbind(start, sapply(bearings, goto), start)))
   colnames(xy) <- c("x", "y")
-  xy$x <- xy$x * 180 / pi
-  xy$y <- xy$y * 180 / pi
+  xy[["x"]] <- xy[["x"]] * 180 / pi
+  xy[["y"]] <- xy[["y"]] * 180 / pi
   
   return(xy)
 }
 
 # 2 by 2 plot of different wedge buffers
-par(mfrow=c(2, 2))
+par(mfrow = c(2, 2))
 plot(wedge(azimuth = 1, delta = 89), main = "azimuth = 1, delta = 89")
 plot(wedge(azimuth = 45, delta = 10), main = "azimuth = 45, delta = 10")
 plot(wedge(azimuth = 180, delta = 45), main = "azimuth = 180, delta = 45")
@@ -99,9 +97,9 @@ Now that we can create the coordinates for a wedge buffer, we just need to conve
 ```{r wedgePolygon, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(sp)
-p = Polygon(wedge(azimuth = 45, delta = 25))
-ps = Polygons(list(p),1)
-sps = SpatialPolygons(list(ps))
+p <- Polygon(wedge(azimuth = 45, delta = 25))
+ps <- Polygons(list(p), 1)
+sps <- SpatialPolygons(list(ps))
 plot(sps)
 
 ```
@@ -131,7 +129,7 @@ wedge_buffers <- lapply(1:nrow(tA), function(i){
   xy <- data.frame(wedge(tA[["wd"]][[i]], delta = 20, origin = tA[["geometry"]][[i]], radius=5000))
   # Convert to spatial polygon
   p <- Polygon(xy)
-  ps <- Polygons(list(p),1)
+  ps <- Polygons(list(p), 1)
   sps <- SpatialPolygons(list(ps))
   # Convert to spatial data
   sdps <- st_as_sf(sps, crs = 4326)
@@ -139,7 +137,7 @@ wedge_buffers <- lapply(1:nrow(tA), function(i){
 
 # Transform list into spatial dataframe
 wbsd <- bind_rows(wedge_buffers)
-wbsd$site <- tA$site
+wbsd[["site"]] <- tA[["site"]]
 wbsd <- wbsd %>% st_set_crs(4326)
 
 # Plot sites and downwind wedge buffer
@@ -159,9 +157,9 @@ Finally, we want to count or retrieve the ID of locations located downwind of th
 # Draw 100 random points around the sites
 bb_sites <- bb(wbsd, ext = 1.15)
 set.seed(3)
-points <- data.frame(cbind(lon = runif(100, bb_sites[[1]]-0.1, bb_sites[[3]])+0.1, lat = runif(100, bb_sites[[2]]-0.1, bb_sites[[4]]+0.1)))
-points$id <-seq.int(nrow(points))
-points$count <- 1
+points <- data.frame(cbind(lon = runif(100, bb_sites[[1]] - 0.1, bb_sites[[3]]) + 0.1, lat = runif(100, bb_sites[[2]] - 0.1, bb_sites[[4]] + 0.1)))
+points[["id"]] <- seq.int(nrow(points))
+points[["count"]] <- 1
 points <- st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
 
 # Spatial join between points and wedge buffers
@@ -210,7 +208,7 @@ windrose_shaped_buffer <-
  
 # Transform list into spatial dataframe
 wbsd <- bind_rows(windrose_shaped_buffer)
-wbsd$site <- tA$site
+wbsd[["site"]] <- tA[["site"]]
 wbsd <- wbsd %>% st_set_crs(4326)
 
 # Plot map with windrose buffers
@@ -218,7 +216,7 @@ my_map <-
   leaflet() %>%
   addTiles(group = "CartoDB") %>%
   addCircles(data = tA, opacity = 0.9, color = "red", label = ~htmlEscape(site))%>%
-  addPolygons(data = wbsd, opacity = 0.8, label = ~htmlEscape(site))
+  addPolygons(data = wbsd, opacity = 0.8, color = "black", weight = 2, label = ~htmlEscape(site))
 my_map
 
 ```
