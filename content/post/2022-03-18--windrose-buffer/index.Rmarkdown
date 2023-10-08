@@ -48,8 +48,8 @@ wedge <- function(azimuth, delta, origin=c(0,0), radius=1, eps=1) {
   #   entry and exit.
   #--------------------------------------------------------------------------------#
   if (eps <= 0) stop("eps must be positive")
-  if (delta <= 0) stop ("delta must be positive")
-  if (delta > 90) stop ("delta must be between 0 and 90")
+  if (delta <= 0) stop("delta must be positive")
+  if (delta > 90) stop("delta must be between 0 and 90")
   if (delta >= eps * 10^4) stop("eps is too small compared to delta")
   if (origin[2] > 90 || origin[2] < -90) stop("origin must be in lon-lat")
   a <- azimuth * pi / 180; da <- delta * pi / 180; de <- eps * pi / 180 

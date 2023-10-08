@@ -6,7 +6,7 @@ theme: "starter-hugo-academic"
 
 title: Damm, Y. # Website name
 baseurl: 'http://yannicdamm.netlify.app' # Website URL
-copyright: '' # Footer text, e.g. '© {year} Me'
+copyright: '© 2023 Yannic Damm' # Footer text, e.g. '© {year} Me'
 
 ############################
 ## LANGUAGE
